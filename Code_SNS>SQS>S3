@@ -1,0 +1,42 @@
+Parameters:
+  SNSTopicARN:
+    Type: String
+    Default: SNSqueueS3 
+  TopicRegion:
+    Type: String
+    Default: us-east-1
+
+Resources:
+  Queue:
+    Type: AWS::SQS::Queue
+  Properties:
+    QueueName: MyQueue
+
+  SnsSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: sqs
+      Endpoint: !GetAtt MyQueue.Arn
+      Region: !Ref TopicRegion
+      TopicArn: !Ref SNSTopicARN
+      
+  
+ LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+         ZipFile: | 
+      
+      FunctionName: LambdaFunction
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Runtime: nodejs8.10
+      
+
+      
+  LambdaFunctionEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      BatchSize: 1
+      Enabled: true
+      EventSourceArn: !GetAtt MyQueue.Arn
+      FunctionName: !GetAtt LambdaFunction.Arn
