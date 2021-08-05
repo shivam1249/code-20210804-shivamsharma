@@ -1,4 +1,13 @@
-Parameters:
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  RootRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+    
+    
+    
+    
+ Parameters:
   SNSTopicARN:
     Type: String
     Default: SNSqueueS3 
@@ -7,6 +16,23 @@ Parameters:
     Default: us-east-1
 
 Resources:
+  
+  S3Bucket:
+    Type: 'AWS::S3::Bucket'
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: SNS_notify
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: GlacierRule
+            Prefix: glacier
+            Status: Enabled
+            ExpirationInDays: 365
+            Transitions:
+              - TransitionInDays: 1
+                StorageClass: GLACIER  
   Queue:
     Type: AWS::SQS::Queue
   Properties:
@@ -25,7 +51,43 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       Code:
-         ZipFile: | 
+         ZipFile: |  import pandas as pd
+                     from io import StringIO
+                      import boto3
+
+
+
+          #  lambda function to offload messages from sqs queue and download and store data
+    
+            #  
+                def get_queue_url():
+    		          sqs_client = boto3.client("sqs", region_name="us-west-2")
+    		          response = sqs_client.get_queue_url(
+        		            QueueName="MyQueue",
+    	          )
+                return response["QueueUrl"]
+                def receive_message():
+    		          sqs_client = boto3.client("sqs", region_name="us-west-2")
+    		          response = sqs_client.receive_message(
+        		             QueueUrl="QueueUrl",
+        		             MaxNumberOfMessages=1,
+        		             WaitTimeSeconds=10,
+    		        )
+        
+            
+            
+            
+                def upload_file( SNS_notify, object_name=Message):
+          
+                  s3_resource = boto3.resource('s3')
+                  try:
+                    response = s3_client.upload_file(file_name, bucket, object_name)
+                  except ClientError as e:
+                    logging.error(e)
+                    return False
+                  return True
+
+   
       
       FunctionName: LambdaFunction
       Role: !GetAtt LambdaExecutionRole.Arn
